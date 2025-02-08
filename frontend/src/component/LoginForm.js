@@ -18,7 +18,7 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const res = await fetch('http://localhost:5000/api/users/login', {
+    const res = await fetch('http://192.168.16.107:5000/api/users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -36,7 +36,6 @@ const LoginForm = () => {
       if(data.status === 200){
         console.log("User logged in successfully", userData);
         localStorage.setItem('username', userData.username);
-        localStorage.setItem('socketId', userData.userSocketId);
         localStorage.setItem('userId', userData.userID);
         navigate('/chat/default');
       }

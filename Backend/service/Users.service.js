@@ -1,5 +1,4 @@
 const UserModel = require('../model/Users.model');
-const OnlineUsers = require('../model/OnlineUsers.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -36,14 +35,6 @@ async function Login(user) {
 }
 
 
-async function getAllOnlineUsers() {
-    try {
-        const users = await OnlineUsers.find({ status: 'online' });
-        return { status: 200, data: users };
-    } catch (err) {
-        return { status: 500, message: err.message };
-    }
-}
 async function getAllUser(){
     try{
         const Users = await UserModel.find();
@@ -54,13 +45,16 @@ async function getAllUser(){
     }
 }
 
-async function getUserById(id) {
+async function getUserById(username) {
     try {
-        const user = await UserModel.findOne({ id: id });
+        const user = await UserModel.findOne({ _id : username });
+        if(!user){
+            return "No Converstion";
+        }
         return user;
     } catch (err) {
         return "No user found";
     }
 }
 
-module.exports = { Register, Login,getAllOnlineUsers,getUserById,getAllUser };
+module.exports = { Register, Login,getUserById,getAllUser };

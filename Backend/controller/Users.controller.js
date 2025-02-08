@@ -4,7 +4,6 @@ const Users = require("../service/Users.service");
 
 router.post("/register", Register);
 router.post("/login", Login);
-router.get("/onlineUsers", getAllOnlineUsers);
 router.post("/:id", getUserById);
 router.get("/allUser", getAllUser)
 
@@ -30,15 +29,7 @@ function Login(req,res,next){
 }
 
 
-function getAllOnlineUsers(req,res,next){
-    Users.getAllOnlineUsers()
-    .then((data) => {
-        res.json(data);
-    })
-    .catch((err) => {
-        res.json(err);
-    });
-}
+
 
 
 function getUserById(req,res,next){

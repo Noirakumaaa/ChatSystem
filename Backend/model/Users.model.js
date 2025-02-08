@@ -8,8 +8,11 @@ const userSchema = new mongoose.Schema({
         unique: true
     },
     socketId: {
-        type: mongoose.Schema.Types.ObjectId,
-        default: () => new mongoose.Types.ObjectId()
+        type: String,
+    },
+    status:  {
+        type : String,
+        default : "Offline"
     },
     email: {
         type: String,

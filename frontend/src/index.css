@@ -11,3 +11,231 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+
+/* General Styles */
+.chat-container {
+  display: flex;
+  height: 100vh;
+  background-color: #f0f4f8;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Users Container */
+.users-container {
+  width: 260px;
+  background-color: #1c3b6e;
+  color: #fff;
+  padding: 20px;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.user-list-header {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #fff;
+  text-align: center;
+}
+
+.user-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.user-item {
+  padding: 12px 20px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.user-link {
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  display: block;
+  padding: 12px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.user-link:hover {
+  background-color: #3b65a3;
+}
+
+/* Chat Container */
+.chat-main-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
+  background-color: #ffffff;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.top-nav {
+  display: flex;
+  align-items: center;
+  background-color: #007bff;
+  color: #fff;
+  padding: 12px 20px;
+  border-top-right-radius: 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+.chat-header {
+  font-size: 20px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+}
+
+.user-message {
+  text-align: right;
+  margin-bottom: 10px;
+  padding: 12px;
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 15px;
+  max-width: 65%;
+  margin-left: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.another-user-message {
+  text-align: left;
+  margin-bottom: 10px;
+  padding: 12px;
+  background-color: #e0e0e0;
+  color: #333;
+  border-radius: 15px;
+  max-width: 65%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.input-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.input {
+  width: 80%;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  background-color: #f1f1f1;
+}
+
+.send-button {
+  width: 15%;
+  padding: 14px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.send-button:hover {
+  background-color: #0056b3;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .chat-container {
+    flex-direction: column;
+  }
+
+  .users-container {
+    width: 100%;
+    border-radius: 0;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .chat-main-container {
+    border-radius: 0;
+  }
+
+  .input {
+    width: 70%;
+  }
+
+  .send-button {
+    width: 25%;
+  }
+}
+
+
+/* Toggle Button Styles */
+.toggle-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-button:hover {
+  background-color: #0056b3;
+}
+
+/* Online Users Section Visibility */
+.users-container.visible {
+  display: block;
+}
+
+.users-container.hidden {
+  display: none;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .users-container {
+    width: 100%;
+    border-radius: 0;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .chat-main-container {
+    border-radius: 0;
+  }
+
+  .toggle-button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}

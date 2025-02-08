@@ -38,8 +38,24 @@ app.use('/api/conversation', convoRoutes);
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB");
-    server.listen(process.env.PORT || 5000, "0.0.0.0", () => { // Fixed syntax
-      console.log(`Server running on port ${process.env.PORT || 5000}`);
+    server.listen(process.env.PORT, "0.0.0.0", () => { 
+      console.log(`Server running on:
+        - Local: http://localhost:${process.env.PORT}
+        - Network: http://${getLocalIP()}:${process.env.PORT}`);
     });
   })
   .catch((err) => console.log('MongoDB connection error:', err));
+
+
+  function getLocalIP() {
+    const os = require("os");
+    const networkInterfaces = os.networkInterfaces();
+    for (const key in networkInterfaces) {
+      for (const net of networkInterfaces[key]) {
+        if (net.family === "IPv4" && !net.internal) {
+          return net.address;
+        }
+      }
+    }
+    return "127.0.0.1";  // Default to localhost
+  }

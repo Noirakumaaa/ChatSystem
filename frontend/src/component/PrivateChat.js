@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate, useParams, Link } from "react-router-dom";
 
-
-
-const socket = io("http://localhost:5000");
+const socket = io("http://192.168.16.107:5000");
 
 const ChatComponent = () => {
   const navigate = useNavigate();
@@ -12,13 +10,14 @@ const ChatComponent = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [targetUser, setTargetUser] = useState(null);
+  const [onlineCount, setOnlineCount] = useState([]);
   const [userLocalData] = useState({
     username: localStorage.getItem("username"),
     socketId: localStorage.getItem("socketId"),
     userId: localStorage.getItem("userId"),
   });
-
-
+  const [showOnlineUsers, setShowOnlineUsers] = useState(true); 
 
   useEffect(() => {
     if (!userLocalData.username) {
@@ -26,62 +25,98 @@ const ChatComponent = () => {
     }
   }, [userLocalData, navigate]);
 
-
-
-
   useEffect(() => {
     if (socket) {
       console.log("userlocaldata", userLocalData);
-      socket.emit("User", { userLocalData});
-
-      console.log('connected');
+      socket.emit("User", { userLocalData });
+      socket.on("login", (data) => {
+        setOnlineCount((prev) => [...prev, data.socketId]);
+      });
+      console.log("connected");
     }
   }, [userLocalData]);
-
 
   useEffect(() => {
     const fetchOnlineUsers = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/users/onlineUsers");
+        const res = await fetch("http://192.168.16.107:5000/api/users/allUser");
         const data = await res.json();
-
-        const filteredUsers = data.data.filter( user => user.userId !== userLocalData.userId);
+        console.log("All User : ", data);
+        const filteredUsers = data.filter(
+          (user) => user._id !== userLocalData.userId
+        );
         setOnlineUsers(filteredUsers);
       } catch (error) {
         console.error("Error fetching online users:", error);
       }
     };
     fetchOnlineUsers();
-  }, [onlineUsers,userLocalData]);
+  }, [onlineCount, userLocalData]);
 
-  useEffect(() => { 
-    const fetchMessages = async () => {
+  useEffect(() => {
+    const fetchUser = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/conversation/getMessages", {
+        const res = await fetch(`http://192.168.16.107:5000/api/users/${id}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ conversationId: id }),
         });
         const data = await res.json();
-        setMessages(data.data.reverse());
+        console.log("TARGET FETCH : ", data);
+        setTargetUser(data);
       } catch (error) {
         console.error("Error fetching messages:", error);
       }
     };
 
-    fetchMessages();
+    fetchUser();
+  }, [id]);
 
-  }, [id]); 
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (targetUser) {
+        try {
+          const res = await fetch(
+            "http://192.168.16.107:5000/api/conversation/getConvo",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                sender: userLocalData.userId,
+                receiver: targetUser._id,
+              }),
+            }
+          );
+
+          console.log("User:", userLocalData.userId);
+          console.log("Receiver:", targetUser._id);
+
+          const data = await res.json();
+          console.log("Message:", data);
+
+          setMessages(data);
+        } catch (error) {
+          console.error("Error fetching messages:", error);
+        }
+      }
+    };
+
+    fetchMessages();
+  }, [targetUser]);
 
   useEffect(() => {
     if (socket) {
       socket.on("PrivateMessage", (data) => {
-        console.log(data)
-        setMessages((prevMessages) => [...prevMessages, { user: "Friend", message: data.message }]);
+        console.log(data);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { user: "Friend", message: data.message },
+        ]);
       });
-  
+
       return () => {
         socket.off("PrivateMessage");
       };
@@ -92,86 +127,127 @@ const ChatComponent = () => {
     setNewMessage(e.target.value);
   };
 
+  useEffect(() => {
+    if (!socket) return;
 
+    const handlePrivateMessage = (data) => {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          user: data.from === userLocalData.username ? "User" : "Friend",
+          message: data.message,
+          receiver: data.receiver,
+        },
+      ]);
+    };
 
-useEffect(() => {
-  if (!socket) return;
+    socket.off("PrivateMessage");
+    socket.on("PrivateMessage", handlePrivateMessage);
 
-  const handlePrivateMessage = (data) => {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        user: data.from === userLocalData.username ? "User" : "Friend",
-        message: data.message,
-        receiver: data.receiver
-      }
-    ]);
-  };
+    return () => {
+      socket.off("PrivateMessage", handlePrivateMessage);
+    };
+  }, [userLocalData.username]);
 
-  socket.off("PrivateMessage"); // Remove any previous listener before adding a new one
-  socket.on("PrivateMessage", handlePrivateMessage);
-
-  return () => {
-    socket.off("PrivateMessage", handlePrivateMessage);
-  };
-}, [userLocalData.username]);
-
-  
-  
   const sendMessage = () => {
     if (newMessage.trim() !== "" && userLocalData.username && socket) {
-      setMessages([...messages, { user: "User", message: newMessage, receiver: id }]);
+      setMessages([
+        ...messages,
+        {
+          user: "User",
+          sender: userLocalData.userId,
+          message: newMessage,
+          receiver: id,
+        },
+      ]);
       socket.emit("Message", {
         message: newMessage,
-        sender: userLocalData.socketId,
-        receiver: id, 
+        sender: userLocalData.userId,
+        receiver: id,
       });
       setNewMessage("");
     }
   };
-  
+
+  const toggleOnlineUsers = () => {
+    setShowOnlineUsers((prev) => !prev);
+  };
+  const logout = () => {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+    navigate("/login")
+  };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.usersContainer}>
-        <h3 style={styles.userListHeader}>Online Users</h3>
-        <ul style={styles.userList}>
-          {onlineUsers.map((user, index) => (
-            <li key={index} style={styles.userItem}>
-              <Link to={`/chat/${user.userId}`} style={styles.userLink}>
-                {user.username}
-              </Link>
-            </li>
-          ))}
+    <div className="chat-container">
+      {/* Online Users Section */}
+      <div
+        className={`users-container ${showOnlineUsers ? "visible" : "hidden"}`}
+      >
+        <h3 className="user-list-header">Online Users</h3>
+        <ul className="user-list">
+          {onlineUsers
+            .slice()
+            .sort((a, b) => (b.status === "Online") - (a.status === "Online"))
+            .map((user, index) => (
+              <li key={index} className="user-item">
+                <Link to={`/chat/${user._id}`} className="user-link">
+                  {user.username} {user.status === "Online" ? "🟩" : "⬛"}
+                </Link>
+              </li>
+            ))}
         </ul>
-      </div>
-      <div style={styles.chatContainer}>
-        <div style={styles.messagesContainer}>
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              style={
-                msg.user === "User"
-                  ? styles.userMessage
-                  : styles.anotherUserMessage
-              }
-            >
-              <span>{msg.user}: </span>
-              <span>{msg.message}</span>
-            </div>
-          ))}
+        <div
+          style={{ display: "flex", flexDirection: "column", height: "auto" }}
+        >
+          <button onClick={logout} style={{ marginTop: "auto" }}>
+            Logout
+          </button>
         </div>
-        <div style={styles.inputContainer}>
+      </div>
+
+      {/* Chat Main Section */}
+      <div className="chat-main-container">
+        {/* Top Navbar with Toggle Button */}
+        <div className="top-nav">
+          <button className="toggle-button" onClick={toggleOnlineUsers}>
+            {showOnlineUsers ? "Hide Online Users" : "Show Online Users"}
+          </button>
+          <h3 className="chat-header">
+            {targetUser ? targetUser.username : "Chat"}
+          </h3>
+        </div>
+
+        {/* Messages Container */}
+        <div className="messages-container">
+          {messages.map((msg, index) => {
+            const isUserMessage = msg.sender === userLocalData.userId;
+            return (
+              <div
+                key={index}
+                className={
+                  isUserMessage ? "user-message" : "another-user-message"
+                }
+              >
+                <span>{isUserMessage ? "You" : "Friend"}:</span>
+                <span>{msg.message}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Input Container */}
+        <div className="input-container">
           <input
             type="text"
             value={newMessage}
             onChange={handleMessageChange}
-            style={styles.input}
+            className="input"
             placeholder="Type a message..."
           />
           <button
             onClick={sendMessage}
-            style={styles.sendButton}
+            className="send-button"
             disabled={id === "default"}
           >
             Send
@@ -180,127 +256,6 @@ useEffect(() => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    display: "flex",
-    height: "100vh",
-    backgroundColor: "#f0f4f8",
-    fontFamily: "Segoe UI, Tahoma, Geneva, Verdana, sans-serif",
-  },
-  usersContainer: {
-    width: "260px",
-    backgroundColor: "#1c3b6e",
-    color: "#fff",
-    padding: "20px",
-    borderRight: "1px solid #ddd",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    borderTopLeftRadius: "10px",
-    borderBottomLeftRadius: "10px",
-  },
-  userListHeader: {
-    fontSize: "22px",
-    fontWeight: "bold",
-    marginBottom: "20px",
-    color: "#fff",
-    textAlign: "center",
-  },
-  userList: {
-    listStyleType: "none",
-    padding: 0,
-    margin: 0,
-    width: "100%",
-  },
-  userItem: {
-    padding: "12px 20px",
-    textAlign: "center",
-    borderBottom: "1px solid #ddd",
-    cursor: "pointer",
-    transition: "background-color 0.3s ease, color 0.3s ease",
-    borderRadius: "6px",
-    fontSize: "18px",
-    fontWeight: "500",
-  },
-  chatContainer: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    padding: "30px",
-    backgroundColor: "#ffffff",
-    borderTopRightRadius: "10px",
-    borderBottomRightRadius: "10px",
-  },
-  messagesContainer: {
-    flex: 1,
-    overflowY: "auto",
-    marginBottom: "20px",
-    padding: "15px",
-    backgroundColor: "#f9fafb",
-    borderRadius: "12px",
-    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
-    border: "1px solid #ddd",
-  },
-  userMessage: {
-    textAlign: "right",
-    marginBottom: "10px",
-    padding: "12px",
-    backgroundColor: "#007bff",
-    color: "#fff",
-    borderRadius: "15px",
-    maxWidth: "65%",
-    marginLeft: "auto",
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-  },
-  anotherUserMessage: {
-    textAlign: "left",
-    marginBottom: "10px",
-    padding: "12px",
-    backgroundColor: "#e0e0e0",
-    color: "#333",
-    borderRadius: "15px",
-    maxWidth: "65%",
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-  },
-  inputContainer: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: "10px",
-  },
-  input: {
-    width: "80%",
-    padding: "14px",
-    borderRadius: "20px",
-    border: "1px solid #ddd",
-    fontSize: "16px",
-    backgroundColor: "#f1f1f1",
-  },
-  sendButton: {
-    width: "15%",
-    padding: "14px",
-    backgroundColor: "#007bff",
-    color: "white",
-    border: "none",
-    borderRadius: "20px",
-    cursor: "pointer",
-    fontSize: "16px",
-    transition: "background-color 0.3s ease",
-  },
-  userLink: {
-    color: "#fff",
-    textDecoration: "none",
-    fontWeight: "bold",
-    display: "block",
-    padding: "12px",
-    borderRadius: "6px",
-    transition: "background-color 0.3s ease",
-  },
-  userLinkHover: {
-    backgroundColor: "#3b65a3",
-  },
 };
 
 export default ChatComponent;

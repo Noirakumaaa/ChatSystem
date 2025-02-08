@@ -1,4 +1,5 @@
 const Conversation = require('../model/Conversation.model');
+const Message = require('../model/Message.model')
 
 
 async function sendMessage(data){
@@ -29,7 +30,44 @@ async function getMessages(data){
 }
 
 
+async function getConversation(data) {
+    console.log("Get Conversation : ", data)
+
+    const conversation = await Conversation.findOne({
+        participants: { $all: [data.sender, data.receiver] },
+        $expr: { $eq: [{ $size: "$participants" }, 2] } // ✅ Ensures only 2 participants
+      }).select("_id"); // ✅ Only fetches the conversation ID
+
+
+      console.log("CONVERSATIONN : " ,conversation)
+
+    if(!conversation){
+        const createConver = await Conversation.create({
+            participants: [data.sender, data.receiver]
+        });
+    
+        const Messages = await Message.find({
+            conversationID: createConver._id
+        }).populate("sender", "username") 
+        .sort({ createdAt: 1 }); 
+
+        console.log(Messages)
+
+        return Messages
+        
+    }
+
+    const Messages = await Message.find({
+        conversationID: conversation._id
+    }).populate("sender", "username") 
+    .sort({ createdAt: 1 }); 
+    console.log(Messages)
+    return Messages
+}
+
+
 module.exports = {
     sendMessage,
-    getMessages
+    getMessages,
+    getConversation
 }

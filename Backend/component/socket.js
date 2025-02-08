@@ -1,78 +1,111 @@
-const OnlineUsers = require('../model/OnlineUsers.model');
-const Users = require('../model/Users.model')
-const Conversation = require('../model/Conversation.model')
+const Users = require("../model/Users.model");
+const Message = require("../model/Message.model");
+const Conversation = require("../model/Conversation.model");
 
 module.exports = (io) => {
-    io.on('connection', (socket) => {
-        console.log("Socket ID : " , socket.id)
+  io.on("connection", (socket) => {
+    console.log("Socket Connected: ", socket.id);
 
+    // 🟢 Handle User Connection
+    socket.on("User", async (data) => {
+      const userData = data.userLocalData;
+      console.log("User Data:", userData);
 
-        
-        socket.on('User', async (data) => {
-            const userData = data.userLocalData;
-            console.log("User Data : ", userData)
-            /* User data : 
-            username
-            socketId
-            userId
-            */
-            const checkUser = await OnlineUsers.findOne({ userId : userData.userId});
-            console.log('User:', checkUser);
-
-            ///////////////////////////////////////////////////////////////////////
-            // Update the user status to online 
-            ///////////////////////////////////////////////////////////////////////
-            try {
-                if (checkUser) {
-                    console.log("1")
-                    const updatedUser = await OnlineUsers.findOneAndUpdate({ username: userData.username }, {status: 'online', socketId: socket.id }, { new: true });
-                    console.log('User went online:', updatedUser);
-                } else {
-    
-                  const CreateUser = await OnlineUsers.create({ username: userData.username,userId : userData.userId, socketId: socket.id , status: 'online' });
-                  console.log("Create user", CreateUser);
-                }
-            }catch (err) {
-                console.error('Error creating user:', err);
-            }
-          });
-          
-          ////////////////////////////////////////////////
-          // Message handler
-          /////////////////////////////////////////////////
-          socket.on('Message', async (data) => {
-            console.log('Message:', data);
-            /*
-                message:
-                sender: 
-                receiver: 
-            */
-            const receiverData = await OnlineUsers.findOne({userId : data.receiver})
-            console.log("receiver : ", receiverData)
-            const checkConversation = await Conversation.find({
-                $or: [
-                    { receiver: data.receiver, sender: data.sender }, 
-                    { receiver: data.sender, sender: data.receiver }
-                ]
-            });
-            io.to(receiverData.socketId).emit("PrivateMessage", { from: data.sender, message: data.message });
-
+      try {
+        // ✅ Check if user exists in the database
+        const CurrentUser = await Users.findOne({
+          username: userData.username,
+          _id: userData.userId,
         });
-        
 
-
-
-
-        socket.on('disconnect', async () => {
-            console.log("Socket ID : ",socket.id)
-        
-            try {
-                const offlineUser = await OnlineUsers.updateOne({ socketId: socket.id }, { status: 'offline' });
-                console.log('User went offline:');
-            } catch (err) {
-                console.error('Error deleting user:', err);
+        if (CurrentUser) {
+          // ✅ Update existing user status & socketId
+          await Users.findOneAndUpdate(
+            { _id: userData.userId },
+            {
+              socketId: socket.id,
+              status: "Online",
             }
-        });
-        
+          );
+        } else {
+          // ✅ If user doesn't exist, create a new user record
+          await Users.findOneAndUpdate(
+            { _id: userData.userId },
+            {
+              socketId: socket.id,
+              status: "Online",
+            },
+            { upsert: true } // Creates a new user if not found
+          );
+        }
+
+        // ✅ Notify the user they have logged in
+        io.to(socket.id).emit("login", { socketId: socket.id, user: 1 });
+      } catch (err) {
+        console.error("Error updating user status:", err);
+      }
     });
+
+    // 🟢 Handle Message Sending
+    socket.on("Message", async (data) => {
+      console.log("Message Received:", data);
+
+      try {
+        // ✅ Check if a conversation already exists between the two users
+        let conversation = await Conversation.findOne({
+          participants: { $all: [data.sender, data.receiver] },
+          $expr: { $eq: [{ $size: "$participants" }, 2] },
+        });
+
+        if (!conversation) {
+          // ✅ Create a new conversation if it doesn't exist
+          conversation = await Conversation.create({
+            participants: [data.sender, data.receiver],
+            lastMessage: data.message,
+          });
+        }
+
+        // ✅ Save the new message to the database
+        const newMessage = await Message.create({
+          conversationID: conversation._id,
+          sender: data.sender,
+          receiver: data.receiver,
+          message: data.message,
+        });
+
+        // ✅ Update the last message in the conversation
+        await Conversation.findByIdAndUpdate(conversation._id, {
+          lastMessage: newMessage.message,
+        });
+
+        // ✅ Find the receiver's socket ID
+        const receiver = await Users.findOne({ _id: data.receiver });
+
+        if (receiver && receiver.socketId) {
+          // ✅ Send the message to the receiver if they are online
+          io.to(receiver.socketId).emit("PrivateMessage", {
+            from: data.sender,
+            message: data.message,
+          });
+        }
+      } catch (err) {
+        console.error("Error handling message:", err);
+      }
+    });
+
+    // 🟢 Handle User Disconnection
+    socket.on("disconnect", async () => {
+      console.log("Socket Disconnected: ", socket.id);
+
+      try {
+        // ✅ Set user status to offline
+        await Users.updateOne({ socketId: socket.id }, { status: "offline" });
+
+        // ✅ Notify others that the user has gone offline
+        io.to(socket.id).emit("login", { socketId: socket.id, user: -1 });
+      } catch (err) {
+        console.error("Error updating user status to offline:", err);
+      }
+    });
+  });
 };
