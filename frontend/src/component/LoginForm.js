@@ -18,7 +18,7 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const res = await fetch('http://192.168.16.107:5000/api/users/login', {
+    const res = await fetch('http://13.213.46.53:5555/api/users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

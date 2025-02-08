@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate, useParams, Link } from "react-router-dom";
 
-const socket = io("http://192.168.16.107:5000");
+const socket = io("http://13.213.46.53:5555");
 
 const ChatComponent = () => {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ const ChatComponent = () => {
   useEffect(() => {
     const fetchOnlineUsers = async () => {
       try {
-        const res = await fetch("http://192.168.16.107:5000/api/users/allUser");
+        const res = await fetch("http://13.213.46.53:5555/api/users/allUser");
         const data = await res.json();
         console.log("All User : ", data);
         const filteredUsers = data.filter(
@@ -56,7 +56,7 @@ const ChatComponent = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch(`http://192.168.16.107:5000/api/users/${id}`, {
+        const res = await fetch(`http://13.213.46.53:5555/api/users/${id}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -78,7 +78,7 @@ const ChatComponent = () => {
       if (targetUser) {
         try {
           const res = await fetch(
-            "http://192.168.16.107:5000/api/conversation/getConvo",
+            "http://13.213.46.53:5555/api/conversation/getConvo",
             {
               method: "POST",
               headers: {

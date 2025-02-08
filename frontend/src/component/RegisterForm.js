@@ -28,7 +28,7 @@ const RegisterForm = () => {
       return;
     }
     try {
-      const res = await fetch("http://192.168.16.107:5000/api/users/register", {
+      const res = await fetch("http://13.213.46.53:5555/api/users/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
