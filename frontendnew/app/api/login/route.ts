@@ -42,6 +42,12 @@ export async function POST(req: NextRequest) {
             httpOnly: true,
             path: '/',
           })
+        cookieStore.set({
+            name: 'user',
+            value: findUser.id,
+            httpOnly: true,
+            path: '/',
+          })
 
         return NextResponse.json({ Message: "LOGIN SUCCESSFULLY" }, { status: 200 });
 
