@@ -28,11 +28,15 @@ const Login = () => {
 
     if (res.ok) {
       console.log("Login successful:", data);
-      router.push("/a/home");
+      router.push("/a/default");
     } else {
       console.error("Login failed:", data);
     }
   };
+
+  const handleRegister = () => {
+    router.push("/register")
+  }
 
   return (
     <div className="min-h-screen w-screen flex flex-col overflow-y-auto">
@@ -71,6 +75,10 @@ const Login = () => {
               Login
             </button>
           </form>
+          <div className="divider"></div>
+          <button type="submit" className="btn btn-primary w-full" onClick={handleRegister}>
+              Register
+        </button>
         </div>
       </div>
     </div>

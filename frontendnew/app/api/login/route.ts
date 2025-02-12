@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         cookieStore.set({
             name: 'user',
             value: findUser.id,
-            httpOnly: true,
+            httpOnly: false,
             path: '/',
           })
 

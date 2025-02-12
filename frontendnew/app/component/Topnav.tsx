@@ -1,4 +1,5 @@
 import React from "react";
+import { HomeButton, GetStartedButton, ContactButton, AboutButton } from "./buttons/LinkButtons";
 
 const Topnav = () => {
   return (
@@ -27,13 +28,13 @@ const Topnav = () => {
               className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
             >
               <li>
-                <a>Home</a>
+                <HomeButton />
               </li>
               <li>
-                <a>About</a>
+                <AboutButton />
               </li>
               <li>
-                <a>Contact</a>
+                <ContactButton />
               </li>
             </ul>
           </div>
@@ -42,18 +43,18 @@ const Topnav = () => {
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal px-1">
             <li>
-              <a>Home</a>
+              <HomeButton />
             </li>
             <li>
-                <a>About</a>
-              </li>
+              <AboutButton />
+            </li>
             <li>
-              <a>Contact</a>
+              <ContactButton />
             </li>
           </ul>
         </div>
         <div className="navbar-end">
-          <a className="btn">Get Started</a>
+          <GetStartedButton />
         </div>
       </div>
     </>

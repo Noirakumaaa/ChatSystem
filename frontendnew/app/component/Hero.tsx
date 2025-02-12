@@ -1,6 +1,9 @@
 import React from "react";
+import Link from 'next/link'
+
 
 const Hero = () => {
+
   return (
     <>
       <div className="hero bg-base-200 min-h-[90%]">
@@ -12,8 +15,8 @@ const Hero = () => {
               excepturi exercitationem quasi. In deleniti eaque aut repudiandae
               et a id nisi.
             </p>
-            <button className="btn btn-primary m-2">Login</button>
-            <button className="btn btn-primary m-2">Register</button>
+            <Link className="btn btn-primary m-2" href="/login">Login</Link>
+            <Link className="btn btn-primary m-2" href="/register">Register</Link>
           </div>
         </div>
       </div>

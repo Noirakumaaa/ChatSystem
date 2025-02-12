@@ -23,6 +23,7 @@ model Messages {
   receiver       String
   message        String
   time           DateTime @default(now())
+  status         String 
 }
 
 model Conversation {
