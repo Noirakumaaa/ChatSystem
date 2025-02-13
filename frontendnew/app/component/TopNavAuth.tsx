@@ -45,9 +45,11 @@ const TopnavAuth = () => {
               </svg>
             </div>
             <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
-              <li>hi</li>
               <li>
-                <a>Item 2</a>
+              <a>Testing</a>
+              </li>
+              <li>
+                <a>Testing</a>
               </li>
             </ul>
           </div>

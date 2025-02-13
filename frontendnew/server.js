@@ -13,11 +13,7 @@ const handler = app.getRequestHandler();
 
 app.prepare().then(() => {
   const httpServer = createServer((req, res) => {
-    if (req.url.startsWith("/_next")) {
-      handler(req, res);
-    } else {
-      handler(req, res);
-    }
+    handler(req, res);
   });
 
   const io = new Server(httpServer, {
@@ -26,84 +22,92 @@ app.prepare().then(() => {
 
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
-    if (socket.id)
-      socket.on("user", async (data) => {
-        console.log("Data : ", data);
-        const userData = data;
 
-        if (userData) {
-          await prisma.users.update({
-            where: {
-              id: userData.id,
-            },
-            data: {
-              socketId: socket.id,
-            },
-          });
+    socket.on("user", async (data) => {
+      //console.log("Data:", data);
+      if (!data?.id) return;
 
-          //console.log("Updated User : ", updateUser.socketId);
-          //console.log("Current Socket ID : ", socket.id)
-        }
-      });
-
-    socket.on("Message", async (data) => {
-      console.log("Data : ",data)
-      const { sender, receiver, message } = data;
-      const findConversation = await prisma.conversation.findFirst({
-        where: {
-          participants: {
-            hasEvery: [sender, receiver],
-          },
-        },
-      });
-      console.log("1",findConversation)
-      const receiverSocketID = await prisma.users.findUnique({
-        where : {
-          id : receiver
-        }
-      })
-      console.log("2",receiverSocketID)
-
-      if (!findConversation) {
-        const createNewConversation = await prisma.conversation.create({
-          data: {
-            participants: [sender, receiver],
-            lastMessage: "",
-          },
+      try {
+        const UpdatedUser =await prisma.users.update({
+          where: { id: data.id },
+          data: { socketId: socket.id,status:"Online"},
         });
-        console.log("3",receiverSocketID)
-
-        const NewMessage = await prisma.messages.create({
-          data: {
-            conversationID: createNewConversation.id,
-            sender: sender,
-            receiver: receiver,
-            message: message,
-            time: new Date(),
-            status: "Delivered",
-          },
-        });
-        console.log("4",NewMessage)
-        io.to(receiverSocketID.socketId).emit("SendMessage", {NewMessage});
-      }else{
-        const NewMessagee = await prisma.messages.create({
-          data: {
-            conversationID: findConversation.id,
-            receiver: receiver,
-            sender: sender,
-            message: message,
-            time: new Date(),
-            status: "Delivered",
-          },
-        });
-        console.log("5",NewMessagee)
-        io.to(receiverSocketID.socketId).emit("SendMessage", {NewMessagee});
+        //console.log("UpdateUser : ",UpdatedUser )
+      } catch (error) {
+        //console.error("Error updating socketId:", error);
       }
-
     });
 
-    socket.on("disconnect", () => {
+    socket.on("Message", async (data) => {
+      //console.log("Data:", data);
+      const { sender, receiver, message } = data;
+      
+      try {
+        const findConversation = await prisma.conversation.findFirst({
+          where: {
+            participants: { hasEvery: [sender, receiver] },
+          },
+        });
+
+        const receiverUser = await prisma.users.findUnique({
+          where: { id: receiver },
+          select: { socketId: true },
+        });
+
+        if (!receiverUser) {
+          //console.log(`Receiver user ${receiver} not found.`);
+          return;
+        }
+
+        let conversationID;
+        if (!findConversation) {
+          const newConversation = await prisma.conversation.create({
+            data: { participants: [sender, receiver], lastMessage: "" },
+          });
+          conversationID = newConversation.id;
+        } else {
+          conversationID = findConversation.id;
+        }
+
+        const newMessage = await prisma.messages.create({
+          data: {
+            conversationID,
+            sender,
+            receiver,
+            message,
+            time: new Date(),
+            status: "Delivered",
+          },
+        });
+
+        io.to(receiverUser.socketId).emit("SendMessage", { newMessage });
+      } catch (error) {
+        //console.error("Error handling message:", error);
+      }
+    });
+
+    socket.on("disconnect", async () => {
       console.log("User disconnected:", socket.id);
+
+      try {
+        const currentUser = await prisma.users.findFirst({
+          where: { socketId: socket.id },
+        });
+
+        if (!currentUser) {
+          console.log("User not found in database.");
+          return;
+        }
+
+        await prisma.users.update({
+          where: { id: currentUser.id },
+          data: { status: "Offline" },
+        });
+
+        console.log(`User ${currentUser.id} ${currentUser.username} set to Offline.`);
+      } catch (error) {
+        console.error("Error updating user status:", error);
+      }
     });
   });
 

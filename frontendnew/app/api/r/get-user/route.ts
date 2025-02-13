@@ -3,7 +3,7 @@ import prisma from "@/lib/prismaClient";
 
 export async function POST(req: NextRequest) {
     const currentUser = await req.json()
-    console.log(currentUser)
+    //console.log(currentUser)
     const user = await prisma.users.findUnique({
         where : {
             id : currentUser.id

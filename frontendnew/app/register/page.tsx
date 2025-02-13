@@ -14,7 +14,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await fetch("/api/register", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),
@@ -26,7 +26,7 @@ const Register = () => {
       console.log("Registration successful:", data);
       router.push("/login");
     } else {
-      console.error("Registration failed:", data);
+      console.log("Registration failed:", data);
     }
   };
 

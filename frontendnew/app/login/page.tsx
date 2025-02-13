@@ -17,8 +17,8 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const res = await fetch("/api/login", {
+    console.log(process.env.HOST_NAME)
+    const res = await fetch(`http://${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),
@@ -30,7 +30,7 @@ const Login = () => {
       console.log("Login successful:", data);
       router.push("/a/default");
     } else {
-      console.error("Login failed:", data);
+      console.log("Login failed:", data);
     }
   };
 

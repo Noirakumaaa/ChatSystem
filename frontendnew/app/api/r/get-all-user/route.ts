@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const cookieUser = cookieStore.get("user")?.value;
     console.log(cookieUser)
     if (!cookieUser) {

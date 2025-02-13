@@ -8,6 +8,7 @@ interface Users {
   password: string;
   socketId: string;
   username: string;
+  status: string;
 }
 
 const Conversations = () => {
@@ -17,23 +18,30 @@ const Conversations = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/r/get-all-user", {
-          method: "GET",
-          credentials: "include",
-        });
+        const res = await fetch(
+          `http://${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/r/get-all-user`,
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
 
-        if (!res.ok) console.error("Failed to fetch users");
+        if (!res.ok) console.log("Failed to fetch users");
 
         const data = await res.json();
         console.log(data);
 
         setAllUsers(data.Users || []);
       } catch (error) {
-        console.error("Error fetching users:", error);
+        console.log("Error fetching users:", error);
       }
     };
 
-    fetchUsers();
+    fetchUsers(); // Run immediately when page loads
+
+    const interval = setInterval(fetchUsers, 60000); // Run every 10 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
   }, []);
 
   const handleUserClick = (userId: string) => {
@@ -75,7 +83,7 @@ const Conversations = () => {
                     user.socketId ? "text-green-500" : "text-gray-500"
                   }`}
                 >
-                  {user.socketId ? " Online" : " Offline"}
+                  {user.status === "Online" ? " Online" : " Offline"}
                 </span>
               </div>
             </li>
