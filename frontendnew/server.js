@@ -4,49 +4,53 @@ import { PrismaClient } from "@prisma/client";
 import { Server } from "socket.io";
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
-const port = 3000;
+const PORT = 3000;
+const HOST = "192.168.16.107";
+
 const prisma = new PrismaClient();
 
-const app = next({ dev, hostname, port });
+const app = next({ dev, HOST, PORT });
 const handler = app.getRequestHandler();
 
+const onlineUsers = new Map(); // FIXED
+
 app.prepare().then(() => {
-  const httpServer = createServer((req, res) => {
-    handler(req, res);
-  });
+  const httpServer = createServer(handler);
 
   const io = new Server(httpServer, {
-    cors: { origin: "*" },
+    cors: { origin: `http://${HOST}:${PORT}` },
   });
 
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
     socket.on("user", async (data) => {
-      //console.log("Data:", data);
-      if (!data?.id) return;
-
+      console.log("Data : ", data.id);
       try {
-        const UpdatedUser =await prisma.users.update({
+        const updatedUser = await prisma.users.update({
           where: { id: data.id },
-          data: { socketId: socket.id,status:"Online"},
+          data: { socketId: socket.id, status: "Online" },
         });
-        //console.log("UpdateUser : ",UpdatedUser )
+
+        onlineUsers.set(updatedUser.socketId, {
+          socketId: updatedUser.socketId,
+          username: updatedUser.username,
+          status: "Online",
+        });
+
+        io.emit("userUpdate", Array.from(onlineUsers.values())); // Send to all users
       } catch (error) {
-        //console.error("Error updating socketId:", error);
+        console.error("Error updating socketId:", error);
       }
     });
 
     socket.on("Message", async (data) => {
-      //console.log("Data:", data);
       const { sender, receiver, message } = data;
-      
+      console.log("Message : ", data);
+
       try {
         const findConversation = await prisma.conversation.findFirst({
-          where: {
-            participants: { hasEvery: [sender, receiver] },
-          },
+          where: { participants: { hasEvery: [sender, receiver] } },
         });
 
         const receiverUser = await prisma.users.findUnique({
@@ -54,19 +58,14 @@ app.prepare().then(() => {
           select: { socketId: true },
         });
 
-        if (!receiverUser) {
-          //console.log(`Receiver user ${receiver} not found.`);
-          return;
-        }
+        if (!receiverUser?.socketId) return;
 
-        let conversationID;
-        if (!findConversation) {
+        let conversationID = findConversation?.id;
+        if (!conversationID) {
           const newConversation = await prisma.conversation.create({
             data: { participants: [sender, receiver], lastMessage: "" },
           });
           conversationID = newConversation.id;
-        } else {
-          conversationID = findConversation.id;
         }
 
         const newMessage = await prisma.messages.create({
@@ -82,7 +81,7 @@ app.prepare().then(() => {
 
         io.to(receiverUser.socketId).emit("SendMessage", { newMessage });
       } catch (error) {
-        //console.error("Error handling message:", error);
+        console.error("Error handling message:", error);
       }
     });
 
@@ -94,24 +93,21 @@ app.prepare().then(() => {
           where: { socketId: socket.id },
         });
 
-        if (!currentUser) {
-          console.log("User not found in database.");
-          return;
+        if (currentUser) {
+          onlineUsers.delete(socket.id);
+          await prisma.users.update({
+            where: { id: currentUser.id },
+            data: { status: "Offline" },
+          });
+          io.emit("userUpdate", Array.from(onlineUsers.values()));
         }
-
-        await prisma.users.update({
-          where: { id: currentUser.id },
-          data: { status: "Offline" },
-        });
-
-        console.log(`User ${currentUser.id} ${currentUser.username} set to Offline.`);
       } catch (error) {
         console.error("Error updating user status:", error);
       }
     });
   });
 
-  httpServer.listen(port, () => {
-    console.log(`> Ready on http://${hostname}:${port}`);
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`> Ready on http://${HOST}:${PORT}`);
   });
 });

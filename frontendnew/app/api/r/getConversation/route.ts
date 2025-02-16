@@ -5,6 +5,7 @@ import Conversations from "@/app/component/Conversations";
 export async function POST(req: NextRequest) {
     try {
         const { sender, receiver } = await req.json();
+        console.log("Sender : ", sender , " Receiver : ", receiver)
 
         const findConversation = await prisma.conversation.findFirst({
             where: {

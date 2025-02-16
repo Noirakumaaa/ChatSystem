@@ -1,9 +1,13 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Socket } from "socket.io-client";
 import { useParams } from "next/navigation";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:3000", { withCredentials: true });
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/lib/store";
+import { initializeSocket } from "@/lib/InitializedSocket";
+import { fetchMessages } from "@/lib/store/feature/message/messageThunks";
+import { fetchUsers } from "@/lib/store/feature/users/userThunks";
+import { updateUser,updateOnlineUsers } from "@/lib/store/feature/users/userSlice";
 
 type User = {
   id: string;
@@ -20,147 +24,138 @@ type Message = {
 };
 
 const Home = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const { id } = useParams();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { currentUser, allUsers, loading } = useSelector((state: RootState) => state.users);
+  const messages = useSelector((state: RootState) => state.messages.messages);
+
+  const [ConvoMessages, setConvoMessages] = useState<Message[]>([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [input, setInput] = useState("");
-  const [currentUser, setCurrentUser] = useState("");
-  const [targetUser, setTargetUser] = useState<User | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const fetchedRef = useRef< string>(null);
 
+  const targetUser = useMemo(() => allUsers.find(user => user.id === id), [id, allUsers]);
+
+  //////////////////////////////////////////////
+  //// Initialized the socket io for this component 
+  /////////////////////////////////////////////
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const res = await fetch(`http://${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/r/get-current-user`, {
-          method: "GET",
-          credentials: "include",
-        });
+    const initSocket = initializeSocket();
+    setSocket(initSocket);
 
-        if (!res.ok) console.log("Failed to fetch user");
-
-        const data = await res.json();
-        setCurrentUser(data.CurrentUser.id);
-        socket.emit("user", { id: data.CurrentUser.id });
-      } catch (error) {
-        console.log("Error fetching user:", error);
-      } finally {
-        setLoadingUser(false);
-      }
+    return () => {
+      initSocket.disconnect();
     };
-
-    fetchCurrentUser();
   }, []);
 
+  //////////////////////////////////////////////
+  //// Update the status of the user 
+  /////////////////////////////////////////////
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id || !currentUser) return;
-      setLoadingMessages(true);
+    if (!socket || !currentUser.id) return;
+    console.log("LOGIN STATUS")
+    socket.emit("user", { id: currentUser.id });
+  }, [socket, currentUser]);
 
-      try {
-        const res = await fetch(`http://${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/r/getConversation`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sender: currentUser, receiver: id }),
-        });
+    //////////////////////////////////////////////
+  //// update the status
+  /////////////////////////////////////////////
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("userUpdate",(data)=>{
+      console.log("User Update : ",data)
+      console.log(data)
+      dispatch(updateOnlineUsers(data))
+    });
+  }, [socket]);
 
-        if (!res.ok) console.log("Failed to fetch conversation");
 
-        const data = await res.json();
-        setMessages(data.conversation || []);
-      } catch (error) {
-        console.log("Error fetching messages:", error);
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
+  //////////////////////////////////////////////
+  //// to scroll down to the latest message
+  /////////////////////////////////////////////
+  useEffect(() => {
+    if (!currentUser.id || !targetUser?.id || !id) return;
+    if (fetchedRef.current === id) return;
+    fetchedRef.current = Array.isArray(id) ? id[0] : id;
 
-    const fetchTargetUser = async () => {
-      if (!id) return;
+    dispatch(fetchMessages({ currentUser: currentUser.id, targetUser: targetUser.id }));
+  }, [id, dispatch, currentUser.id, targetUser?.id]);
 
-      try {
-        const res = await fetch(`http://${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/r/get-user`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
-        });
 
-        if (!res.ok) console.log("Failed to fetch target user");
 
-        const data = await res.json();
-        setTargetUser(data.User || null);
-      } catch (error) {
-        console.log("Error fetching target user:", error);
-      }
-    };
-
-    if (id && currentUser) {
-      fetchTargetUser();
-      fetchData();
-    }
-  }, [id, currentUser]);
+  //////////////////////////////////////////////
+  //// When recieved the messages from the redux 
+  //// insert the messages to state
+  /////////////////////////////////////////////
+  useEffect(() => {
+    setConvoMessages(messages);
+  }, [messages]);
 
   useEffect(() => {
-    if (socket) {
-      socket.on("SendMessage", (data) => {
-        setMessages((prev) => [...prev, data.NewMessagee]);
-      });
-    }
+    if (!socket) return;
+
+    socket.on("SendMessage", (data) => {
+      console.log("Received Message", data.newMessage)
+      setConvoMessages((prev) => [...prev, data.newMessage]);
+    });
+
+
 
     return () => {
       socket.off("SendMessage");
+      console.log("All Message : ", ConvoMessages)
     };
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [messages]);
+  }, [ConvoMessages]);
+  
 
   const sendMessage = () => {
-    if (!input.trim()) return;
+    if (!socket || !input.trim()) return;
+    console.log("socket", socket)
 
     const newMessage: Message = {
-      id: crypto.randomUUID(),
-      sender: currentUser,
-      receiver: Array.isArray(id) ? id[0] : id || "",
+      id: new Date().toISOString(),
+      sender: currentUser.id,
+      receiver: targetUser?.id || "",
       message: input,
       status: "Delivered",
       time: new Date().toISOString(),
     };
+    console.log("Send Message : ", newMessage)
 
     socket.emit("Message", newMessage);
-    setMessages((prev) => [...prev, newMessage]);
+    setConvoMessages((prev) => [...prev, newMessage]);
     setInput("");
   };
 
-  if (!id && !currentUser) {
-    return null;
-  }
+  if (!id || !currentUser || !socket || loading) return null;
 
   return (
     <div className="h-full w-full flex flex-col bg-gray-100">
       <div className="h-16 w-full flex items-center justify-between px-4 bg-white border-b shadow-md">
-        <h2 className="text-lg font-semibold">
-          {targetUser ? targetUser.username : ""}
-        </h2>
+        <h2 className="text-lg font-semibold">{targetUser?.username || "Unknown User"}</h2>
         <div className="w-6 h-6 cursor-pointer">⚙️</div>
       </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
-        {loadingUser || loadingMessages ? (
-          <div className="flex justify-center items-center h-full">
+        {loading ? (
+          <div className="flex justify-center items-center h-[90%]">
             <span className="loading loading-spinner loading-lg"></span>
           </div>
-        ) : messages.length > 0 ? (
+        ) : Array.isArray(ConvoMessages) && ConvoMessages.length > 0 ? (
           <>
-            {messages.map((msg) =>
-              msg && msg.sender ? (
+            {ConvoMessages.map((msg) =>
+              msg?.sender ? (
                 <div
                   key={msg.id}
-                  className={`chat ${msg.sender === currentUser ? "chat-end" : "chat-start"}`}
+                  className={`chat ${msg.sender === currentUser.id ? "chat-end" : "chat-start"}`}
                 >
                   <div className="chat-header">
                     <time className="text-xs opacity-50 ml-2">
@@ -182,6 +177,7 @@ const Home = () => {
           <div className="text-center text-gray-500">No messages available</div>
         )}
       </div>
+
       <div className="h-16 flex items-center px-4 border-t bg-white">
         <input
           type="text"
@@ -191,10 +187,7 @@ const Home = () => {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
         />
-        <button
-          className="ml-2 bg-blue-500 text-white p-2 rounded-md"
-          onClick={sendMessage}
-        >
+        <button className="ml-2 bg-blue-500 text-white p-2 rounded-md" onClick={sendMessage}>
           ➤
         </button>
       </div>

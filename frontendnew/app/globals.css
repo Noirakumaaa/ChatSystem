@@ -13,10 +13,9 @@
     --foreground: oklch(var(--nc));
   }
 }
-html{
-  background: oklch(var(--nc));
-
-}
-body {
- background: oklch(var(--nc));
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }

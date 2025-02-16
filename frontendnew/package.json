@@ -4,20 +4,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "nodemon server.js ",
     "build": "next build",
     "start": "NODE_ENV=production nodemon server.js",
     "lint": "next lint"
   },
   "dependencies": {
     "@prisma/client": "^6.3.1",
+    "@reduxjs/toolkit": "^2.5.1",
     "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "next": "15.1.6",
     "nodemon": "^3.1.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^7.1.5",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
@@ -30,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-redux": "^7.1.34",
     "daisyui": "^4.12.23",
     "eslint": "^9",
     "eslint-config-next": "15.1.6",

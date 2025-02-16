@@ -8,7 +8,7 @@ const TopnavAuth = () => {
 
 
   const handleLogout = async () => {
-    const res = await fetch("http://localhost:3000/api/r/logout", {
+    const res = await fetch("http://192.168.16.107:3000/api/r/logout", {
       method: "GET",
       credentials: "include",
     });

@@ -17,12 +17,14 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(process.env.HOST_NAME)
-    const res = await fetch(`http://${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/login`, {
+    console.log(process.env.NEXT_PUBLIC_HOST_NAME)
+    const res = await fetch(`http://192.168.16.107:3000/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(formData),
     });
+    
 
     const data = await res.json();
 

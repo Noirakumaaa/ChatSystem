@@ -14,9 +14,10 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_HOST_NAME}:${process.env.NEXT_PUBLIC_PORT}/api/register`, {
+    const res = await fetch(`http://192.168.16.107:3000/api/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials : "include",
       body: JSON.stringify(formData),
     });
 

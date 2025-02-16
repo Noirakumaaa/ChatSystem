@@ -37,19 +37,23 @@ export async function POST(req: NextRequest) {
 
         
         cookieStore.set({
-            name: 'auth',
+            name: "auth",
             value: token,
             httpOnly: true,
-            path: '/',
-          })
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+        });
+        
         cookieStore.set({
-            name: 'user',
+            name: "user",
             value: findUser.id,
-            httpOnly: false,
-            path: '/',
-          })
+            httpOnly: false, 
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7, 
+        });
 
-        return NextResponse.json({ Message: "LOGIN SUCCESSFULLY" }, { status: 200 });
+          return NextResponse.json({ Message: "LOGIN SUCCESSFULLY" }, { status: 200 });
+
 
     } catch (error) {
         console.error("Login Error:", error);
