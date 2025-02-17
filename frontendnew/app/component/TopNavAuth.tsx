@@ -1,11 +1,8 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { redirect } from "next/navigation";
 
-
-
 const TopnavAuth = () => {
-
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
     const res = await fetch("http://192.168.16.107:3000/api/r/logout", {
@@ -14,20 +11,41 @@ const TopnavAuth = () => {
     });
 
     if (res.ok) {
-     redirect("/")
+      redirect("/");
     }
   };
 
   return (
     <>
-      <div className="navbar bg-base-100">
-        <div className="navbar-start">
+      <div className="navbar bg-base-100 px-4">
+        <div className="flex-1">
           <a className="btn btn-ghost text-xl">Massenger</a>
         </div>
-        <div className="navbar-end">
-          
+        
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden">
+          <button onClick={() => setIsOpen(!isOpen)} className="btn">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"}
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Desktop Menu */}
+        <div className="hidden lg:flex gap-4 items-center">
           <div className="indicator dropdown dropdown-bottom dropdown-end dropdown-hover">
-          <span className="indicator-item badge badge-secondary">new</span>
+            <span className="indicator-item badge badge-secondary">new</span>
             <div tabIndex={0} role="button" className="btn m-1">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -45,12 +63,8 @@ const TopnavAuth = () => {
               </svg>
             </div>
             <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
-              <li>
-              <a>Testing</a>
-              </li>
-              <li>
-                <a>Testing</a>
-              </li>
+              <li><a>Testing</a></li>
+              <li><a>Testing</a></li>
             </ul>
           </div>
           <div className="dropdown dropdown-end">
@@ -66,13 +80,20 @@ const TopnavAuth = () => {
             </div>
             <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
               <li>hi</li>
-              <li>
-                <button onClick={handleLogout}>Logout</button>
-              </li>
+              <li><button onClick={handleLogout}>Logout</button></li>
             </ul>
           </div>
         </div>
       </div>
+
+      {/* Mobile Dropdown */}
+      {isOpen && (
+        <div className="lg:hidden p-4 bg-base-100 shadow-md">
+          <a className="block py-2">Testing</a>
+          <a className="block py-2">Testing</a>
+          <button onClick={handleLogout} className="block w-full text-left py-2">Logout</button>
+        </div>
+      )}
     </>
   );
 };
